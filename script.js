@@ -5,14 +5,13 @@ import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/fi
 
 // Your Firebase config object
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project-id.firebaseapp.com",
-  databaseURL: "https://your-project-id.firebaseio.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id",
-  measurementId: "your-measurement-id"
+  apiKey: "AIzaSyDx2BuB6leW1I0dCikbJHC_hi0xj9aAcDs",
+  authDomain: "chatter-codedealer123.firebaseapp.com",
+  databaseURL: "https://chatter-codedealer123-default-rtdb.firebaseio.com/",
+  projectId: "chatter-codedealer123",
+  storageBucket: "chatter-codedealer123.firebasestorage.app",
+  messagingSenderId: "895724059437",
+  appId: "1:895724059437:web:e87e991caec25bd2a6b1a4"
 };
 
 // Initialize Firebase
