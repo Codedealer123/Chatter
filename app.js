@@ -1,5 +1,5 @@
 // Connect to WebSocket Server
-const socket = new WebSocket('ws://chatter-i61q.onrender.com:3000');
+const socket = new WebSocket('wss://chatter-i61q.onrender.com:3000');
 
 socket.onmessage = (event) => {
     const chatBox = document.getElementById('chat-box');
