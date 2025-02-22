@@ -1,7 +1,7 @@
 // Import Firebase modules using modern ES6 imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+import { getDatabase, ref, push, onChildAdded, set } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
 // Your Firebase config object
 const firebaseConfig = {
@@ -44,15 +44,33 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// Register a new user
+// Register a new user with a custom display name
 registerButton.addEventListener('click', () => {
   const email = emailInput.value;
   const password = passwordInput.value;
+  const displayName = prompt("Please enter your display name"); // Ask user for their name
 
   createUserWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
       const user = userCredential.user;
       console.log("User created: ", user.email);
+
+      // Update the display name in Firebase Authentication
+      updateProfile(user, {
+        displayName: displayName
+      }).then(() => {
+        console.log("Display name set:", displayName);
+      }).catch((error) => {
+        console.error("Error setting display name:", error.message);
+      });
+
+      // Optionally, save display name in Realtime Database as well
+      const userRef = ref(database, 'users/' + user.uid);
+      set(userRef, {
+        email: user.email,
+        displayName: displayName
+      });
+
     })
     .catch((error) => {
       console.error("Error registering user: ", error.message);
@@ -99,7 +117,7 @@ sendMessageButton.addEventListener('click', () => {
         message: message,
         timestamp: Date.now(),
         uid: user.uid,
-        email: user.email
+        displayName: user.displayName || user.email // Use display name if available, otherwise use email
       });
     } else {
       console.log("User not logged in.");
@@ -113,6 +131,8 @@ sendMessageButton.addEventListener('click', () => {
 onChildAdded(messagesRef, (snapshot) => {
   const messageData = snapshot.val();
   const messageElement = document.createElement('li');
-  messageElement.textContent = `${messageData.email}: ${messageData.message}`;
+  
+  // Use display name if available, otherwise fall back to email
+  messageElement.textContent = `${messageData.displayName}: ${messageData.message}`;
   messagesList.appendChild(messageElement);
 });
