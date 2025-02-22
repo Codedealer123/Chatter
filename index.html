@@ -4,15 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Firebase Chat App</title>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js" type="module"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js" type="module"></script>
-  <script src="script.js" type="module"></script> <!-- your custom JS -->
 </head>
 <body>
-  <div id="chatContainer">
-    <ul id="messages"></ul>
-    <input type="text" id="messageInput" placeholder="Type your message..."/>
-    <button id="sendMessage">Send</button>
+  <div id="authContainer">
+    <h2>Login</h2>
+    <input type="email" id="emailInput" placeholder="Email">
+    <input type="password" id="passwordInput" placeholder="Password">
+    <button id="loginButton">Login</button>
+    <button id="registerButton">Register</button>
   </div>
+
+  <div id="chatContainer" style="display:none;">
+    <h2>Chat</h2>
+    <button id="logoutButton">Logout</button>
+    <ul id="messages"></ul>
+    <input type="text" id="messageInput" placeholder="Type a message">
+    <button id="sendMessage">Send Message</button>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
