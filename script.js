@@ -1,33 +1,24 @@
 // Import Firebase modules using modern ES6 imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-import { getDatabase, ref, push, onChildAdded, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
 // Your Firebase config object
 const firebaseConfig = {
-  apiKey: "AIzaSyDx2BuB6leW1I0dCikbJHC_hi0xj9aAcDs",
-  authDomain: "chatter-codedealer123.firebaseapp.com",
-  databaseURL: "https://chatter-codedealer123-default-rtdb.firebaseio.com/",
-  projectId: "chatter-codedealer123",
-  storageBucket: "chatter-codedealer123.firebasestorage.app",
-  messagingSenderId: "895724059437",
-  appId: "1:895724059437:web:e87e991caec25bd2a6b1a4"
+  apiKey: "your-api-key",
+  authDomain: "your-project-id.firebaseapp.com",
+  databaseURL: "https://your-project-id.firebaseio.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.appspot.com",
+  messagingSenderId: "your-sender-id",
+  appId: "your-app-id",
+  measurementId: "your-measurement-id"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
-
-// Enable offline persistence for the Firebase Realtime Database
-enableIndexedDbPersistence(database)
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.log("Persistence failed: Multiple tabs open.");
-    } else if (err.code === 'unimplemented') {
-      console.log("Persistence is not available in this browser.");
-    }
-  });
 
 // Get DOM elements for authentication and chat
 const emailInput = document.getElementById('emailInput');
