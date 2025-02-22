@@ -31,3 +31,36 @@ function sendMessage() {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 }
+
+// Get a reference to the Firebase database
+const database = firebase.database();
+
+// Reference to the 'messages' node in your database
+const messagesRef = database.ref('chatBox');
+
+// Get message input and button elements
+const messageInput = document.getElementById('messageInput');
+const sendMessageButton = document.getElementById('sendMessage');
+
+// Listen for the 'click' event to send a message
+sendMessageButton.addEventListener('click', () => {
+  const message = messageInput.value;
+
+  if (message) {
+    // Push the message to Firebase Realtime Database
+    messagesRef.push({
+      message: message,
+      timestamp: Date.now(),
+    });
+  }
+
+  messageInput.value = ''; // Clear the input field
+});
+
+// Listen for changes in the 'messages' node
+messagesRef.on('child_added', (snapshot) => {
+  const messageData = snapshot.val();
+  const messageElement = document.createElement('li');
+  messageElement.textContent = messageData.message;
+  document.getElementById('messages').appendChild(messageElement);
+});
