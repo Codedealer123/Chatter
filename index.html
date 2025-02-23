@@ -3,12 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat App with Firebase Auth</title>
+  <title>Chatter</title>
+  <script>
+    window.onload = function() {
+      if (document.referrer === "" || !document.referrer.includes(window.location.origin)) {
+      // Redirect to another page if accessed directly from index.html
+      window.location.href = "https://codedealer123.github.io"; // Change to your intended page
+    }
+  };
+
+  </script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://codedealer123.github.io/assets/CSS/button.css">
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
+<body style="background-color: black; align-content: center;">
   <!-- Auth Container -->
   <div id="authContainer">
-    <h2>Register / Login</h2>
+    <h2>Login In to Chatter</h2>
     <input type="email" id="emailInput" placeholder="Email" />
     <input type="password" id="passwordInput" placeholder="Password" />
     <button id="registerButton">Register</button>
@@ -16,8 +29,8 @@
   </div>
 
   <!-- Chat Container -->
-  <div id="chatContainer" style="display: none;">
-    <h2>Welcome to the Chat App!</h2>
+  <div id="chatContainer" style="display: none; border-radius: 2px; border-color: grey;">
+    <h2>Welcome to Chatter!</h2>
     <button id="logoutButton">Logout</button>
     <ul id="messages"></ul>
     <input type="text" id="messageInput" placeholder="Type a message" />
