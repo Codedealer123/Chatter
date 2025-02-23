@@ -3,25 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Chat App</title>
+  <title>Chat App with Firebase Auth</title>
 </head>
 <body>
+  <!-- Auth Container -->
   <div id="authContainer">
-    <h2>Login</h2>
-    <input id="emailInput" placeholder="Username">
-    <input type="password" id="passwordInput" placeholder="Password">
-    <button id="loginButton">Login</button>
+    <h2>Register / Login</h2>
+    <input type="email" id="emailInput" placeholder="Email" />
+    <input type="password" id="passwordInput" placeholder="Password" />
     <button id="registerButton">Register</button>
+    <button id="loginButton">Login</button>
   </div>
 
-  <div id="chatContainer" style="display:none;">
-    <h2>Chat</h2>
+  <!-- Chat Container -->
+  <div id="chatContainer" style="display: none;">
+    <h2>Welcome to the Chat App!</h2>
     <button id="logoutButton">Logout</button>
     <ul id="messages"></ul>
-    <input type="text" id="messageInput" placeholder="Type a message">
-    <button id="sendMessage">Send Message</button>
+    <input type="text" id="messageInput" placeholder="Type a message" />
+    <button id="sendMessage">Send</button>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
