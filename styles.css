@@ -10,6 +10,7 @@ input {
     font-style: normal;
 }
 
-.body {
+.message-styles {
     font-family: "Gaegu", serif;
+    color: white;
 }
