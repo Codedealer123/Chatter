@@ -124,24 +124,20 @@
         </div>
     </div>
 
-    <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyChzPC3XHeRu1LTMZxelurcWRAeT98vPSY",
-    authDomain: "bluechattz.firebaseapp.com",
-    projectId: "bluechattz",
-    storageBucket: "bluechattz.firebasestorage.app",
-    messagingSenderId: "645794936279",
-    appId: "1:645794936279:web:6af6e6b2fa24407cb9c792"
-  };
-
-  // Initialize Firebase
-</script>
+    <script>
+        window.__app_id = "1:645794936279:web:6af6e6b2fa24407cb9c792"; // Get this from your Firebase console (e.g., 1:1234567890:web:abcdef123456)
+        window.__firebase_config = JSON.stringify({
+            apiKey: "AIzaSyChzPC3XHeRu1LTMZxelurcWRAeT98vPSY",
+            authDomain: "bluechattz.firebaseapp.com",
+            projectId: "bluechattz",
+            storageBucket: "bluechattz.firebasestorage.app",
+            messagingSenderId: "645794936279",
+            appId: "1:645794936279:web:6af6e6b2fa24407cb9c792"
+        });
+        // If you're using custom tokens for auth, you'd set it here, otherwise can remove
+        // window.__initial_auth_token = "YOUR_CUSTOM_AUTH_TOKEN_HERE";
+    </script>
+    
     <script type="module" defer>
         // Firebase SDK Imports for Realtime Database and Auth
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
