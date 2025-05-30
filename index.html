@@ -1,42 +1,829 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatter</title>
-  <script>
-    window.onload = function() {
-      if (document.referrer === "" || !document.referrer.includes(window.location.origin)) {
-      // Redirect to another page if accessed directly from index.html
-      window.location.href = "https://codedealer123.github.io"; // Change to your intended page
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueChattz (Realtime DB)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: #555; }
+        .dark .chat-messages::-webkit-scrollbar-track { background: #333; }
+        .dark .chat-messages::-webkit-scrollbar-thumb { background: #555; }
+        .dark .chat-messages::-webkit-scrollbar-thumb:hover { background: #777; }
+
+        .video-container { position: relative; width: 100%; height: 100%; background-color: black; display: flex; justify-content: center; align-items: center; overflow: hidden; border-radius: 0.5rem; }
+        .video-container video { width: 100%; height: 100%; object-fit: contain; }
+        .local-video { position: absolute; bottom: 1rem; right: 1rem; width: 120px; height: 90px; border-radius: 0.5rem; background-color: #333; border: 2px solid white; z-index: 10; }
+        .local-video video { width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: white; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; max-width: 400px; width: 90%; }
+        .dark .modal-content { background-color: #1f2937; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 h-screen flex flex-col">
+
+    <header class="bg-white dark:bg-gray-800 shadow-md p-4 flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">BlueChattz</h1>
+        <div id="userNumberDisplay" class="text-sm text-gray-600 dark:text-gray-400">
+            Your Number: <span class="font-mono text-blue-600 dark:text-blue-400">Loading...</span>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-1/4 bg-gray-200 dark:bg-gray-800 border-r border-gray-300 dark:border-gray-700 p-4 overflow-y-auto flex flex-col">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">My Contacts</h2>
+            <div class="mb-4 p-3 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">Add New Contact</h3>
+                <input
+                    type="text"
+                    id="addContactInput"
+                    placeholder="Enter 10-digit number (e.g. 123-456-7890)"
+                    class="w-full p-2 mb-2 rounded-md border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm"
+                    maxlength="12"
+                />
+                <button
+                    id="addContactButton"
+                    class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md font-semibold text-sm transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Add Contact
+                </button>
+                <div id="addContactMessage" class="mt-2 text-sm text-center"></div>
+            </div>
+            <div id="usersList" class="space-y-2 flex-1">
+                <div class="text-gray-600 dark:text-gray-400">No contacts added yet.</div>
+            </div>
+            <div class="mt-4 p-2 bg-gray-300 dark:bg-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+                Click on a number to start chatting!
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+            <div class="bg-white dark:bg-gray-800 shadow-sm p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h2 id="currentChatUser" class="text-xl font-semibold text-gray-800 dark:text-gray-100">Select a contact to chat</h2>
+                <div id="callControls" class="flex space-x-2 hidden">
+                    <button id="callButton" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed">Call</button>
+                    <button id="endCallButton" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-semibold text-sm hidden disabled:opacity-50 disabled:cursor-not-allowed">End Call</button>
+                </div>
+            </div>
+            <div id="callStatus" class="text-center text-sm font-medium py-2 bg-yellow-200 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200 hidden">
+                Connecting...
+            </div>
+            <div id="videoCallArea" class="flex-1 hidden relative bg-black rounded-lg m-4">
+                <div class="video-container">
+                    <video id="remoteVideo" autoplay playsinline class="w-full h-full"></video>
+                    <div class="local-video">
+                        <video id="localVideo" autoplay playsinline muted class="w-full h-full"></video>
+                    </div>
+                </div>
+            </div>
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 chat-messages">
+                <div id="noChatSelected" class="text-center text-gray-500 dark:text-gray-400 mt-10">
+                    No chat selected. Please choose a contact from the sidebar.
+                </div>
+            </div>
+            <form id="messageForm" class="bg-white dark:bg-gray-800 p-4 flex items-center shadow-lg border-t border-gray-200 dark:border-gray-700">
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="Type a message..."
+                    class="flex-1 p-3 rounded-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    disabled
+                />
+                <button
+                    type="submit"
+                    id="sendButton"
+                    class="ml-3 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-semibold shadow-md transition duration-300 ease-in-out transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    Send
+                </button>
+            </form>
+        </main>
+    </div>
+
+    <div id="incomingCallModal" class="modal-overlay hidden">
+        <div class="modal-content text-gray-900 dark:text-gray-100">
+            <h3 class="text-xl font-bold mb-4">Incoming Call!</h3>
+            <p id="incomingCallerNumber" class="mb-6 text-lg"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="acceptCallButton" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md font-semibold">Accept</button>
+                <button id="rejectCallButton" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-md font-semibold">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyChzPC3XHeRu1LTMZxelurcWRAeT98vPSY",
+    authDomain: "bluechattz.firebaseapp.com",
+    projectId: "bluechattz",
+    storageBucket: "bluechattz.firebasestorage.app",
+    messagingSenderId: "645794936279",
+    appId: "1:645794936279:web:6af6e6b2fa24407cb9c792"
   };
 
-  </script>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Gaegu&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://codedealer123.github.io/assets/CSS/button.css">
-  <link rel="stylesheet" href="./styles.css">
-</head>
-<body style="background-color: black; align-content: center;">
-  <!-- Auth Container -->
-  <div id="authContainer">
-    <h2>Login In to Chatter</h2>
-    <input type="email" id="emailInput" placeholder="Email" />
-    <input type="password" id="passwordInput" placeholder="Password" />
-    <button id="registerButton">Register</button>
-    <button id="loginButton">Login</button>
-  </div>
+  // Initialize Firebase
+</script>
+    <script type="module" defer>
+        // Firebase SDK Imports for Realtime Database and Auth
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, set, push, onValue, off, remove, serverTimestamp as rtdbServerTimestamp, get, child, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-  <!-- Chat Container -->
-  <div id="chatContainer" style="display: none; border-radius: 2px; border-color: grey;">
-    <h2>Welcome to Chatter!</h2>
-    <button id="logoutButton">Logout</button>
-    <ul id="messages" class="message-styles"></ul>
-    <input type="text" id="messageInput" placeholder="Type a message" />
-    <button id="sendMessage">Send</button>
-  </div>
+        // Global variables provided by the Canvas environment (or manually injected above)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-  <script type="module" src="./script.js"></script>
+        let app;
+        let db; // Realtime Database instance
+        let auth;
+        let currentUserId = null;
+        let currentUserPhoneNumber = null;
+        let currentChatPartnerId = null;
+        let currentChatPartnerPhoneNumber = null;
+        let unsubscribeMessages = null; // Stores the off() function for RTDB
+        let unsubscribeCallSignaling = null; // Stores the off() function for RTDB
+
+        let peerConnection = null;
+        let localStream = null;
+        let remoteStream = null;
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ]
+        };
+
+        // DOM Elements
+        const userNumberDisplay = document.getElementById('userNumberDisplay').querySelector('span');
+        const usersList = document.getElementById('usersList');
+        const currentChatUserDisplay = document.getElementById('currentChatUser');
+        const chatMessagesDiv = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const messageForm = document.getElementById('messageForm');
+        const noChatSelectedDiv = document.getElementById('noChatSelected');
+        const addContactInput = document.getElementById('addContactInput');
+        const addContactButton = document.getElementById('addContactButton');
+        const addContactMessage = document.getElementById('addContactMessage');
+
+        const callControls = document.getElementById('callControls');
+        const callButton = document.getElementById('callButton');
+        const endCallButton = document.getElementById('endCallButton');
+        const callStatusDiv = document.getElementById('callStatus');
+        const videoCallArea = document.getElementById('videoCallArea');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const incomingCallModal = document.getElementById('incomingCallModal');
+        const incomingCallerNumber = document.getElementById('incomingCallerNumber');
+        const acceptCallButton = document.getElementById('acceptCallButton');
+        const rejectCallButton = document.getElementById('rejectCallButton');
+
+        let isCalling = false;
+        let isReceivingCall = false;
+        let currentCallRef = null; // Realtime DB Reference for the active call
+
+        // Helper Functions
+        const getChatId = (user1, user2) => [user1, user2].sort().join('_');
+        const generateFormattedPhoneNumber = () => {
+            const num = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+            return `${num.substring(0, 3)}-${num.substring(3, 6)}-${num.substring(6, 10)}`;
+        };
+
+        // --- Firebase Initialization and User Setup ---
+        const initializeFirebase = async () => {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getDatabase(app); // Get Realtime Database instance
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        const userRef = ref(db, `artifacts/${appId}/public/data/users/${currentUserId}`);
+                        const userSnapshot = await get(userRef);
+
+                        if (userSnapshot.exists() && userSnapshot.val().phoneNumber) {
+                            currentUserPhoneNumber = userSnapshot.val().phoneNumber;
+                            userNumberDisplay.textContent = currentUserPhoneNumber;
+                        } else {
+                            // Assign a unique phone number if it's a new user
+                            let newPhoneNumber;
+                            let isUnique = false;
+                            let retries = 0;
+                            const maxRetries = 10;
+
+                            const allUsersRef = ref(db, `artifacts/${appId}/public/data/users`);
+                            const allUsersSnapshot = await get(allUsersRef);
+                            const existingPhoneNumbers = new Set();
+                            if (allUsersSnapshot.exists()) {
+                                Object.values(allUsersSnapshot.val()).forEach(u => {
+                                    if (u.phoneNumber) existingPhoneNumbers.add(u.phoneNumber);
+                                });
+                            }
+
+                            while (!isUnique && retries < maxRetries) {
+                                newPhoneNumber = generateFormattedPhoneNumber();
+                                if (!existingPhoneNumbers.has(newPhoneNumber)) {
+                                    isUnique = true;
+                                }
+                                retries++;
+                            }
+
+                            if (isUnique) {
+                                currentUserPhoneNumber = newPhoneNumber;
+                                userNumberDisplay.textContent = currentUserPhoneNumber;
+                                await set(userRef, {
+                                    userId: currentUserId,
+                                    phoneNumber: currentUserPhoneNumber,
+                                    lastActive: rtdbServerTimestamp()
+                                });
+                            } else {
+                                console.error("Error: Could not generate a unique phone number after multiple retries.");
+                                userNumberDisplay.textContent = 'Error: Failed to get a unique number.';
+                            }
+                        }
+                        loadContacts();
+                        listenForIncomingCalls();
+                    } else {
+                        // Sign in anonymously if no user is found
+                        if (initialAuthToken) {
+                            try {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } catch (error) {
+                                console.error("Firebase Auth Error (Custom Token):", error);
+                                alert("Failed to sign in with custom token. Attempting anonymous sign-in.");
+                                await signInAnonymously(auth);
+                            }
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                userNumberDisplay.textContent = 'Error loading app. Check console.';
+            }
+        };
+
+        // --- Contact Management ---
+        const loadContacts = () => {
+            if (!db || !currentUserId) return;
+
+            const contactsRef = ref(db, `artifacts/${appId}/users/${currentUserId}/contacts`);
+            onValue(contactsRef, (snapshot) => {
+                usersList.innerHTML = '';
+                if (!snapshot.exists()) {
+                    usersList.innerHTML = '<div class="text-gray-600 dark:text-gray-400">No contacts added yet.</div>';
+                    return;
+                }
+                const contactsData = snapshot.val();
+                // Iterate over the object values to get individual contacts
+                Object.values(contactsData).forEach(contact => {
+                    const userElement = document.createElement('div');
+                    userElement.className = `p-3 rounded-lg cursor-pointer transition duration-200 ease-in-out
+                                             bg-gray-100 hover:bg-blue-200 dark:bg-gray-700 dark:hover:bg-blue-700
+                                             text-gray-800 dark:text-gray-100 shadow-sm`;
+                    userElement.textContent = contact.phoneNumber;
+                    userElement.dataset.userId = contact.userId;
+                    userElement.dataset.phoneNumber = contact.phoneNumber;
+                    userElement.addEventListener('click', () => selectChat(contact.userId, contact.phoneNumber));
+                    usersList.appendChild(userElement);
+                });
+            }, (error) => {
+                console.error("Error loading contacts:", error);
+                usersList.innerHTML = '<div class="text-red-500">Failed to load contacts. Please refresh.</div>';
+            });
+        };
+
+        addContactButton.addEventListener('click', async () => {
+            const phoneNumberToAdd = addContactInput.value.trim();
+            addContactMessage.textContent = '';
+            addContactMessage.className = 'mt-2 text-sm text-center'; // Reset classes
+
+            if (!phoneNumberToAdd) {
+                addContactMessage.textContent = 'Please enter a phone number.';
+                addContactMessage.classList.add('text-red-500');
+                return;
+            }
+            const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+            if (!phoneRegex.test(phoneNumberToAdd)) {
+                addContactMessage.textContent = 'Invalid phone number format. Use XXX-XXX-XXXX.';
+                addContactMessage.classList.add('text-red-500');
+                return;
+            }
+            if (phoneNumberToAdd === currentUserPhoneNumber) {
+                addContactMessage.textContent = 'Cannot add your own number as a contact.';
+                addContactMessage.classList.add('text-yellow-600');
+                return;
+            }
+
+            const contactsRef = ref(db, `artifacts/${appId}/users/${currentUserId}/contacts`);
+            const existingContactsSnapshot = await get(contactsRef);
+            const existingContactNumbers = new Set();
+            if (existingContactsSnapshot.exists()) {
+                Object.values(existingContactsSnapshot.val()).forEach(c => {
+                    if (c.phoneNumber) existingContactNumbers.add(c.phoneNumber);
+                });
+            }
+
+            if (existingContactNumbers.has(phoneNumberToAdd)) {
+                addContactMessage.textContent = 'This contact is already in your list.';
+                addContactMessage.classList.add('text-yellow-600');
+                return;
+            }
+
+            const publicUsersRef = ref(db, `artifacts/${appId}/public/data/users`);
+            const publicUsersSnapshot = await get(publicUsersRef);
+
+            let foundUser = null;
+            if (publicUsersSnapshot.exists()) {
+                const usersData = publicUsersSnapshot.val();
+                for (const userId in usersData) {
+                    if (usersData[userId].phoneNumber === phoneNumberToAdd) {
+                        foundUser = { userId: userId, phoneNumber: usersData[userId].phoneNumber };
+                        break;
+                    }
+                }
+            }
+
+            if (foundUser) {
+                try {
+                    const contactRef = child(contactsRef, foundUser.userId);
+                    await set(contactRef, {
+                        userId: foundUser.userId,
+                        phoneNumber: foundUser.phoneNumber,
+                        addedAt: rtdbServerTimestamp()
+                    });
+                    addContactInput.value = '';
+                    addContactMessage.textContent = `Contact ${foundUser.phoneNumber} added!`;
+                    addContactMessage.classList.add('text-green-500');
+                } catch (error) {
+                    console.error("Error adding contact:", error);
+                    addContactMessage.textContent = 'Failed to add contact. Please try again.';
+                    addContactMessage.classList.add('text-red-500');
+                }
+            } else {
+                addContactMessage.textContent = 'Phone number not found. Please ensure the user exists.';
+                addContactMessage.classList.add('text-red-500');
+            }
+        });
+
+        // --- Chat Functionality ---
+        const selectChat = (partnerId, partnerPhoneNumber) => {
+            if (currentChatPartnerId === partnerId) return;
+
+            if (peerConnection) {
+                endCall(); // End any ongoing call when switching chats
+            }
+
+            currentChatPartnerId = partnerId;
+            currentChatPartnerPhoneNumber = partnerPhoneNumber;
+            currentChatUserDisplay.textContent = `Chatting with: ${partnerPhoneNumber}`;
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            noChatSelectedDiv.classList.add('hidden');
+            callControls.classList.remove('hidden');
+
+            videoCallArea.classList.add('hidden'); // Hide video call area
+            chatMessagesDiv.classList.remove('hidden'); // Show chat messages
+            messageForm.classList.remove('hidden'); // Show message form
+
+            chatMessagesDiv.innerHTML = ''; // Clear previous messages
+
+            if (unsubscribeMessages) {
+                off(unsubscribeMessages); // Unsubscribe from previous RTDB listener
+            }
+
+            const chatId = getChatId(currentUserId, currentChatPartnerId);
+            const messagesRef = ref(db, `artifacts/${appId}/public/data/chats/${chatId}/messages`);
+
+            unsubscribeMessages = onValue(messagesRef, (snapshot) => {
+                const fetchedMessages = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        fetchedMessages.push({
+                            id: childSnapshot.key, // Get the unique key generated by push()
+                            ...childSnapshot.val()
+                        });
+                    });
+                }
+                // Client-side sorting by timestamp (assuming timestamp is a number from rtdbServerTimestamp())
+                fetchedMessages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+                chatMessagesDiv.innerHTML = '';
+                fetchedMessages.forEach(msg => {
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `flex ${msg.senderId === currentUserId ? 'justify-end' : 'justify-start'}`;
+                    messageElement.innerHTML = `
+                        <div class="max-w-[70%] p-3 rounded-2xl shadow-sm
+                            ${msg.senderId === currentUserId
+                                ? 'bg-blue-500 dark:bg-blue-600 text-white rounded-br-none'
+                                : 'bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-none'
+                            }">
+                            <p class="text-sm break-words">${msg.text}</p>
+                            <span class="block text-right text-xs mt-1 opacity-75">
+                                ${msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}
+                            </span>
+                        </div>
+                    `;
+                    chatMessagesDiv.appendChild(messageElement);
+                });
+                chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+            }, (error) => {
+                console.error("Error fetching messages:", error);
+                chatMessagesDiv.innerHTML = '<div class="text-red-500">Failed to load messages.</div>';
+            });
+        };
+
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageText = messageInput.value.trim();
+
+            if (!messageText || !db || !currentUserId || !currentChatPartnerId) return;
+
+            messageInput.value = ''; // Clear input immediately
+            sendButton.disabled = true; // Disable send button
+
+            try {
+                const chatId = getChatId(currentUserId, currentChatPartnerId);
+                const messagesRef = ref(db, `artifacts/${appId}/public/data/chats/${chatId}/messages`);
+                await set(push(messagesRef), { // push() generates unique ID, then set() writes data
+                    text: messageText,
+                    senderId: currentUserId,
+                    timestamp: rtdbServerTimestamp(), // Realtime DB server timestamp
+                });
+            } catch (error) {
+                console.error("Error sending message:", error);
+                alert("Failed to send message. Please try again.");
+                messageInput.value = messageText; // Restore message if send fails
+            } finally {
+                sendButton.disabled = false; // Re-enable send button
+            }
+        });
+
+        // --- WebRTC Functions ---
+
+        const getLocalMedia = async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+                return true;
+            } catch (error) {
+                console.error("WebRTC Error: Could not access camera/microphone.", error);
+                callStatusDiv.textContent = "Error: Please allow camera and microphone access to make calls.";
+                callStatusDiv.classList.remove('hidden');
+                return false;
+            }
+        };
+
+        const createPeerConnection = () => {
+            peerConnection = new RTCPeerConnection(configuration);
+
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            peerConnection.ontrack = (event) => {
+                if (remoteVideo.srcObject !== event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                    remoteStream = event.streams[0];
+                }
+            };
+
+            peerConnection.onicecandidate = async (event) => {
+                if (event.candidate) {
+                    // Push ICE candidates to the callee's candidates path
+                    const candidatesRef = ref(db, `artifacts/${appId}/public/data/calls/${currentChatPartnerId}/iceCandidates`);
+                    await set(push(candidatesRef), event.candidate.toJSON());
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                switch (peerConnection.connectionState) {
+                    case 'connected':
+                        callStatusDiv.textContent = 'Call Connected!';
+                        callStatusDiv.classList.remove('hidden');
+                        callButton.classList.add('hidden');
+                        endCallButton.classList.remove('hidden');
+                        break;
+                    case 'disconnected':
+                    case 'failed':
+                        callStatusDiv.textContent = 'Call Disconnected. Attempting to reconnect or ended.';
+                        callStatusDiv.classList.remove('hidden');
+                        setTimeout(() => endCall(), 3000); // Attempt to end call after a delay
+                        break;
+                    case 'closed':
+                        callStatusDiv.textContent = 'Call Ended.';
+                        callStatusDiv.classList.remove('hidden');
+                        endCall();
+                        break;
+                    case 'connecting':
+                        callStatusDiv.textContent = 'Connecting...';
+                        callStatusDiv.classList.remove('hidden');
+                        break;
+                    case 'new':
+                    case 'checking':
+                        callStatusDiv.textContent = 'Establishing connection...';
+                        callStatusDiv.classList.remove('hidden');
+                        break;
+                }
+            };
+        };
+
+        const startCall = async () => {
+            if (!currentChatPartnerId || isCalling || isReceivingCall) {
+                alert("Please select a contact to call or end your current call.");
+                return;
+            }
+
+            const mediaReady = await getLocalMedia();
+            if (!mediaReady) return;
+
+            isCalling = true;
+            callStatusDiv.textContent = `Calling ${currentChatPartnerPhoneNumber}...`;
+            callStatusDiv.classList.remove('hidden');
+            callButton.disabled = true;
+            endCallButton.classList.remove('hidden');
+
+            chatMessagesDiv.classList.add('hidden');
+            messageForm.classList.add('hidden');
+            videoCallArea.classList.remove('hidden');
+
+            createPeerConnection();
+
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Create a call entry in RTDB at the callee's expected path
+                currentCallRef = ref(db, `artifacts/${appId}/public/data/calls/${currentChatPartnerId}`);
+                await set(currentCallRef, {
+                    callerId: currentUserId,
+                    callerPhoneNumber: currentUserPhoneNumber,
+                    calleeId: currentChatPartnerId,
+                    calleePhoneNumber: currentChatPartnerPhoneNumber,
+                    offer: JSON.stringify(offer),
+                    status: 'ringing',
+                    timestamp: rtdbServerTimestamp()
+                });
+
+                // Listen for answer and ICE candidates from callee (on our own call reference)
+                listenForCallUpdates(currentChatPartnerId, 'caller');
+
+            } catch (error) {
+                console.error("WebRTC Error: Failed to start call:", error);
+                callStatusDiv.textContent = "Call failed to start. Please check your connection.";
+                alert("Call failed to start. See console for details.");
+                endCall();
+            }
+        };
+
+        const listenForIncomingCalls = () => {
+            if (!db || !currentUserId) return;
+
+            const callRef = ref(db, `artifacts/${appId}/public/data/calls/${currentUserId}`);
+            onValue(callRef, async (snapshot) => {
+                if (snapshot.exists()) {
+                    const callData = snapshot.val();
+                    if (callData.status === 'ringing' && callData.calleeId === currentUserId && !isCalling && !isReceivingCall) {
+                        isReceivingCall = true;
+                        incomingCallerNumber.textContent = callData.callerPhoneNumber;
+                        incomingCallModal.classList.remove('hidden');
+                        currentCallRef = callRef; // Store reference to this specific call path
+                    } else if (callData.status === 'ended' && (isCalling || isReceivingCall)) {
+                        callStatusDiv.textContent = 'Call ended by other party.';
+                        callStatusDiv.classList.remove('hidden');
+                        endCall();
+                        incomingCallModal.classList.add('hidden');
+                    } else if (callData.status === 'rejected' && isCalling) {
+                        callStatusDiv.textContent = `${callData.calleePhoneNumber} rejected your call.`;
+                        callStatusDiv.classList.remove('hidden');
+                        endCall();
+                    }
+                } else if (isReceivingCall || isCalling) { // If call entry disappears while we are in a call state
+                    callStatusDiv.textContent = 'Call ended by other party or cancelled.';
+                    callStatusDiv.classList.remove('hidden');
+                    endCall();
+                    incomingCallModal.classList.add('hidden');
+                }
+            }, (error) => {
+                console.error("Realtime DB Error: Error listening for incoming calls:", error);
+                callStatusDiv.textContent = 'Error monitoring calls. Please refresh.';
+                callStatusDiv.classList.remove('hidden');
+            });
+        };
+
+        const acceptCall = async () => {
+            incomingCallModal.classList.add('hidden');
+            if (!currentCallRef || !isReceivingCall) return;
+
+            const mediaReady = await getLocalMedia();
+            if (!mediaReady) {
+                rejectCall(); // Reject if camera/mic access is not granted
+                return;
+            }
+
+            callStatusDiv.textContent = `Connecting to ${incomingCallerNumber.textContent}...`;
+            callStatusDiv.classList.remove('hidden');
+
+            chatMessagesDiv.classList.add('hidden');
+            messageForm.classList.add('hidden');
+            videoCallArea.classList.remove('hidden');
+
+            createPeerConnection();
+
+            try {
+                const callData = (await get(currentCallRef)).val(); // Get data once
+                const offer = new RTCSessionDescription(JSON.parse(callData.offer));
+                await peerConnection.setRemoteDescription(offer);
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                // Update call document with answer and status
+                await update(currentCallRef, { // Use update() to merge data
+                    answer: JSON.stringify(answer),
+                    status: 'accepted'
+                });
+
+                // Start listening for ICE candidates from the caller
+                listenForCallUpdates(callData.callerId, 'callee');
+
+                // Set chat partner for the active call
+                currentChatPartnerId = callData.callerId;
+                currentChatPartnerPhoneNumber = callData.callerPhoneNumber;
+                currentChatUserDisplay.textContent = `Chatting with: ${currentChatPartnerPhoneNumber}`;
+                callControls.classList.remove('hidden');
+                callButton.classList.add('hidden');
+                endCallButton.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("WebRTC Error: Failed to accept call:", error);
+                callStatusDiv.textContent = "Failed to accept call. Please try again.";
+                alert("Failed to accept call. See console for details.");
+                rejectCall();
+            }
+        };
+
+        const rejectCall = async () => {
+            incomingCallModal.classList.add('hidden');
+            if (currentCallRef) {
+                try {
+                    await update(currentCallRef, { status: 'rejected' }); // Update status for caller
+                    // Give caller a moment to process rejection before deleting
+                    setTimeout(async () => {
+                        await remove(currentCallRef);
+                    }, 500);
+                } catch (error) {
+                    console.error("Realtime DB Error: Failed to reject and delete call entry:", error);
+                }
+            }
+            endCall();
+            callStatusDiv.textContent = 'Call rejected.';
+            callStatusDiv.classList.remove('hidden');
+        };
+
+        const listenForCallUpdates = (partnerId, role) => {
+            if (unsubscribeCallSignaling) {
+                off(unsubscribeCallSignaling); // Unsubscribe from previous RTDB listener
+            }
+
+            // Listen for changes to our own call document for status updates and incoming candidates
+            const myCallRef = ref(db, `artifacts/${appId}/public/data/calls/${currentUserId}`);
+            unsubscribeCallSignaling = onValue(myCallRef, async (snapshot) => {
+                if (snapshot.exists()) {
+                    const callData = snapshot.val();
+                    if (role === 'caller' && callData.answer && peerConnection.remoteDescription === null) {
+                        const answer = new RTCSessionDescription(JSON.parse(callData.answer));
+                        await peerConnection.setRemoteDescription(answer);
+                        callStatusDiv.textContent = 'Connecting...';
+                    } else if (callData.status === 'rejected' && isCalling) {
+                        callStatusDiv.textContent = `${callData.calleePhoneNumber || 'The user'} rejected your call.`;
+                        callStatusDiv.classList.remove('hidden');
+                        endCall();
+                    } else if (callData.status === 'ended' && (isCalling || isReceivingCall)) {
+                        callStatusDiv.textContent = 'Call ended by other party.';
+                        callStatusDiv.classList.remove('hidden');
+                        endCall();
+                    }
+                    // Handle ICE candidates from the other party on this document's subcollection
+                    if (callData.iceCandidates) {
+                        const candidates = callData.iceCandidates;
+                        for (const key in candidates) {
+                            if (Object.prototype.hasOwnProperty.call(candidates, key)) {
+                                const candidate = new RTCIceCandidate(candidates[key]);
+                                if (peerConnection && peerConnection.remoteDescription) {
+                                    try {
+                                        await peerConnection.addIceCandidate(candidate);
+                                        // Delete the candidate after adding it to keep the DB clean
+                                        const candidateRef = child(myCallRef, `iceCandidates/${key}`);
+                                        await remove(candidateRef);
+                                    } catch (e) {
+                                        console.error('WebRTC Error: Error adding received ICE candidate:', e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (isCalling || isReceivingCall) { // Call entry removed unexpectedly
+                    callStatusDiv.textContent = 'Call ended unexpectedly.';
+                    callStatusDiv.classList.remove('hidden');
+                    endCall();
+                }
+            }, (error) => {
+                console.error("Realtime DB Error: Error listening for call updates:", error);
+            });
+        };
+
+        const endCall = async () => {
+            // Clean up WebRTC peer connection
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            // Stop local media tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                localVideo.srcObject = null;
+            }
+            // Clear remote video
+            if (remoteStream) {
+                remoteStream.getTracks().forEach(track => track.stop());
+                remoteStream = null;
+                remoteVideo.srcObject = null;
+            }
+
+            // Unsubscribe from Realtime DB call signaling listener
+            if (unsubscribeCallSignaling) {
+                off(unsubscribeCallSignaling);
+                unsubscribeCallSignaling = null;
+            }
+
+            // Clean up call entry in Realtime DB if it still exists
+            if (currentCallRef) {
+                try {
+                    // Update status to 'ended' first, so the other party gets the update
+                    await update(currentCallRef, { status: 'ended' });
+                    // Then remove the entry after a short delay to ensure other party processes status
+                    setTimeout(async () => {
+                        await remove(currentCallRef);
+                        currentCallRef = null;
+                    }, 500);
+                } catch (error) {
+                    console.error("Realtime DB Error: Error cleaning up call entry:", error);
+                }
+            }
+
+            // Reset UI and state variables
+            isCalling = false;
+            isReceivingCall = false;
+            callButton.disabled = false;
+            callButton.classList.remove('hidden');
+            endCallButton.classList.add('hidden');
+            callStatusDiv.classList.add('hidden');
+            videoCallArea.classList.add('hidden');
+            chatMessagesDiv.classList.remove('hidden');
+            messageForm.classList.remove('hidden');
+
+            // Reset chat display if no partner is selected
+            if (!currentChatPartnerId) {
+                currentChatUserDisplay.textContent = 'Select a contact to chat';
+                noChatSelectedDiv.classList.remove('hidden');
+                callControls.classList.add('hidden');
+            }
+        };
+
+        // Event Listeners
+        callButton.addEventListener('click', startCall);
+        endCallButton.addEventListener('click', endCall);
+        acceptCallButton.addEventListener('click', acceptCall);
+        rejectCallButton.addEventListener('click', rejectCall);
+
+        window.onload = initializeFirebase;
+    </script>
 </body>
 </html>
